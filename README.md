@@ -1,6 +1,6 @@
-# MindMetrics — Frontend
+# MentaScore — Frontend
 
-React (Vite) frontend for **MindMetrics: AI-Based Mental Health Score Prediction System**.
+React (Vite) frontend for **MentaScore: AI-Based Mental Health Score Prediction System**.
 Covers Module 4 (Web Interface) from the project plan: a form that collects lifestyle/digital
 habit inputs, shows a predicted well-being score with wellness suggestions, and a dashboard of
 insights computed from the training dataset (`mindmet.csv`, 5,000 rows).
