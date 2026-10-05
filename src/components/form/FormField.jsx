@@ -61,7 +61,10 @@ export function NumberField({ label, value, onChange, min, max }) {
         min={min}
         max={max}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const val = e.target.value;
+          onChange(val === '' ? '' : Number(val)); // ✅ Ensure numeric type
+        }}
       />
     </label>
   )
