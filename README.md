@@ -4,8 +4,10 @@ An educational well-being dashboard that estimates a self-reflection score from 
 digital-habit inputs. MentaScore pairs a React frontend with a FastAPI prediction service and
 provides a concise breakdown of influential factors.
 
-**Frontend:** [mentascore.vercel.app](https://mentascore.vercel.app/) ·
+**Frontend:** [mentascore.vercel.app](https://mentascore.vercel.app/) 
+
 **Backend:** [mentascore-backend.onrender.com](https://mentascore-backend.onrender.com/)
+
 
 | Layer | Technology |
 |---|---|
@@ -13,6 +15,7 @@ provides a concise breakdown of influential factors.
 | API | Python 3.11, FastAPI, Uvicorn |
 | Prediction and explanations | scikit-learn, SHAP |
 | Hosting | Vercel (frontend), Render (API) |
+
 
 > **Well-being notice:** MentaScore is for awareness and self-reflection only. It is not a medical
 > device or mental-health screening tool, and it is not a substitute for professional care. Scores
