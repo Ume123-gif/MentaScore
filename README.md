@@ -86,19 +86,35 @@ npm run dev
 ```
 
 Open the local URL printed by Vite (by default, `http://localhost:5173`). The example environment
-file points the frontend at `http://localhost:8000`. Change `VITE_API_BASE_URL` in `frontend/.env`
-if the backend is hosted at a different URL.
+file points the frontend at `http://localhost:8000`. This is appropriate when running the backend
+locally. The checked-in `frontend/.env.production` points production builds at the deployed Render
+API; override `VITE_API_BASE_URL` in your hosting provider's build environment if you use a
+different backend URL.
 
-### Production frontend build
+### Deploy the frontend
 
-Run these commands from `frontend/`:
+The frontend is a static Vite app. In your frontend hosting provider, configure:
 
-```bash
+- **Root directory:** `frontend`
+- **Build command:** `npm ci && npm run build`
+- **Publish/output directory:** `dist`
+
+The production build uses `frontend/.env.production` and calls
+`https://mentascore-backend.onrender.com/api/predict`. `VITE_API_BASE_URL` is embedded into the
+frontend at build time, so set or change it before building/redeploying. To build and preview locally,
+run these commands from `frontend/`:
+
+```powershell
+npm ci
 npm run build
 npm run preview
 ```
 
 The production files are generated in `frontend/dist/`.
+
+The prediction API is public and accepts browser requests from any origin; it does not use
+cookie-based authentication. The backend CORS configuration allows cross-origin POST requests for
+the deployed frontend.
 
 ## Prediction API
 
