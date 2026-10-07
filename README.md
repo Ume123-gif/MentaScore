@@ -1,26 +1,52 @@
 # MentaScore
 
-MentaScore is an educational well-being score prediction project. It combines a React dashboard
-with a FastAPI service that applies a trained scikit-learn model to lifestyle and digital-habit
-inputs and returns an estimated score with a short SHAP-based factor breakdown.
+An educational well-being dashboard that estimates a self-reflection score from lifestyle and
+digital-habit inputs. MentaScore pairs a React frontend with a FastAPI prediction service and
+provides a concise breakdown of influential factors.
 
-> **Important:** MentaScore is for awareness and self-reflection only. It is not a medical device,
-> a mental-health screening tool, or a substitute for professional care. Its score and suggestions
-> are estimates based on survey data and should not be used to diagnose or treat any condition.
+<p align="center">
+  <a href="https://mentascore.vercel.app/"><strong>Frontend</strong></a>
+  &nbsp;·&nbsp;
+  <a href="https://mentascore-backend.onrender.com/"><strong>Backend</strong></a>
+</p>
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, Vite, Recharts |
+| API | Python 3.11, FastAPI, Uvicorn |
+| Prediction and explanations | scikit-learn, SHAP |
+| Hosting | Vercel (frontend), Render (API) |
+
+> **Well-being notice:** MentaScore is for awareness and self-reflection only. It is not a medical
+> device or mental-health screening tool, and it is not a substitute for professional care. Scores
+> and suggestions are estimates based on survey data and must not be used to diagnose or treat any
+> condition.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Person[User] -->|Enters lifestyle and digital-habit data| Web[React and Vite app<br/>Vercel]
+    Web -->|POST /api/predict| API[FastAPI service<br/>Render]
+    API -->|Validate request| Schema[Pydantic schema]
+    Schema --> Model[scikit-learn model pipeline]
+    Model --> Explain[SHAP factor contributions]
+    Explain -->|Score and top factors| API
+    API -->|JSON response| Web
+    Web -->|Render score and suggestions| Person
+    Insights[Precomputed dashboard insights] --> Web
+```
+
+The prediction API validates each request, runs the saved model pipeline, and returns an estimated
+score with up to three grouped SHAP contributions. Dashboard visualizations use precomputed project
+statistics bundled with the frontend.
 
 ## Features
 
-- React and Vite interface for entering demographic, digital-habit, and lifestyle information.
-- FastAPI prediction endpoint backed by the saved scikit-learn pipeline.
-- SHAP explanations grouped into a few user-facing lifestyle factors.
-- Dashboard visualizations based on precomputed statistics from the project dataset.
-- Notebook workflow for training and saving the model.
-
-## Technology
-
-- **Frontend:** React 18, Vite, Recharts
-- **Backend:** Python 3.11, FastAPI, Uvicorn
-- **Model:** scikit-learn pipeline with SHAP explanations
+- Enter demographic, digital-habit, and lifestyle information to request a prediction.
+- View an estimated score and a short explanation of its strongest contributing factors.
+- Explore dataset statistics through dashboard visualizations.
+- Train and save the model using the included Jupyter notebook.
 
 ## Project structure
 
@@ -71,8 +97,7 @@ Set-Location backend
 ..\venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-The API is available at `http://localhost:8000`. Interactive API documentation is at
-[`http://localhost:8000/docs`](http://localhost:8000/docs).
+The backend service runs at `http://localhost:8000` when started locally.
 
 ### 2. Set up and start the frontend
 
@@ -112,9 +137,8 @@ npm run preview
 
 The production files are generated in `frontend/dist/`.
 
-The prediction API is public and accepts browser requests from any origin; it does not use
-cookie-based authentication. The backend CORS configuration allows cross-origin POST requests for
-the deployed frontend.
+The prediction API is publicly accessible and does not use cookie-based authentication. Its CORS
+configuration allows cross-origin POST requests so the Vercel frontend can call the Render API.
 
 ## Prediction API
 
@@ -172,9 +196,8 @@ prediction source:
 ```
 
 The request schema rejects unknown fields and validates the stated ranges and categorical values.
-The local development API permits browser requests from `localhost:5173` and `127.0.0.1:5173`;
-update the CORS configuration in `backend/app/main.py` before hosting the frontend on another
-origin.
+The backend currently allows cross-origin requests from browser frontends. If you later restrict
+CORS to specific domains, include your deployed frontend origin and any local development origins.
 
 ## Train the model
 
