@@ -179,9 +179,3 @@ if you change the source dataset and want the dashboard to reflect those changes
 - The dashboard statistics are precomputed and are not recalculated by the frontend.
 - The API loads the serialized model when the backend starts; the model file must be present and
   compatible with the installed Python packages.
-
-## Contributing
-
-Contributions are welcome. For a change, create a branch, make the update, and open a pull request
-with a concise summary and any relevant test or build results. Please keep the product's awareness
-and self-reflection framing, and avoid presenting predictions as medical advice.
