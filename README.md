@@ -1,80 +1,132 @@
 # MentaScore
 
-**MentaScore: AI-Based Mental Health Score Prediction System** contains a React/Vite frontend and
-a Python model-training workflow. The frontend collects lifestyle and digital habit inputs,
-shows an estimated well-being score, and displays insights from the 5,000-row training dataset.
+MentaScore is an educational well-being score prediction project. It combines a React dashboard
+with a FastAPI service that applies a trained scikit-learn model to lifestyle and digital-habit
+inputs and returns an estimated score with a short SHAP-based factor breakdown.
 
-## Frontend
+> **Important:** MentaScore is for awareness and self-reflection only. It is not a medical device,
+> a mental-health screening tool, or a substitute for professional care. Its score and suggestions
+> are estimates based on survey data and should not be used to diagnose or treat any condition.
 
-Run these commands from the repository root:
+## Features
 
-```bash
-cd frontend
+- React and Vite interface for entering demographic, digital-habit, and lifestyle information.
+- FastAPI prediction endpoint backed by the saved scikit-learn pipeline.
+- SHAP explanations grouped into a few user-facing lifestyle factors.
+- Dashboard visualizations based on precomputed statistics from the project dataset.
+- Notebook workflow for training and saving the model.
+
+## Technology
+
+- **Frontend:** React 18, Vite, Recharts
+- **Backend:** Python 3.11, FastAPI, Uvicorn
+- **Model:** scikit-learn pipeline with SHAP explanations
+
+## Project structure
+
+```text
+MentaScore/
+├── backend/
+│   ├── app/                  # FastAPI routes, request schemas, model inference
+│   ├── data/                 # Training survey dataset
+│   ├── models/               # Serialized trained model
+│   ├── notebooks/            # Model training notebook
+│   └── requirements.txt      # Python dependencies
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # Form, result, navigation, and dashboard UI
+│   │   ├── data/             # Precomputed dashboard insights
+│   │   ├── pages/            # Prediction and dashboard pages
+│   │   ├── services/         # Backend prediction requests
+│   │   └── utils/            # Wellness suggestions and score labels
+│   ├── .env.example          # Example frontend environment configuration
+│   └── package.json
+└── README.md
+```
+
+## Requirements
+
+- Node.js and npm
+- Python 3.11
+- The model file at `backend/models/Mental_Health_Model.pkl`
+- The training dataset at `backend/data/Student Social Media And Mental Health Impact.csv`
+
+## Run locally
+
+Start the backend and frontend in separate terminals.
+
+### 1. Set up and start the backend
+
+From the repository root, create a virtual environment and install the Python dependencies:
+
+```powershell
+py -3.11 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+```
+
+Start the API from the `backend` directory:
+
+```powershell
+Set-Location backend
+..\venv\Scripts\python.exe -m uvicorn app.main:app --reload
+```
+
+The API is available at `http://localhost:8000`. Interactive API documentation is at
+[`http://localhost:8000/docs`](http://localhost:8000/docs).
+
+### 2. Set up and start the frontend
+
+In a second terminal, from the repository root:
+
+```powershell
+Set-Location frontend
+Copy-Item .env.example .env
 npm ci
 npm run dev
 ```
 
-The app opens at `http://localhost:5173`.
+Open the local URL printed by Vite (by default, `http://localhost:5173`). The example environment
+file points the frontend at `http://localhost:8000`. Change `VITE_API_BASE_URL` in `frontend/.env`
+if the backend is hosted at a different URL.
+
+### Production frontend build
+
+Run these commands from `frontend/`:
 
 ```bash
-npm run build      # production build -> dist/
-npm run preview    # preview the production build locally
+npm run build
+npm run preview
 ```
 
-## Run the backend API
+The production files are generated in `frontend/dist/`.
 
-After creating the repository-root `venv` and installing `backend\requirements.txt` as described
-below, start the API from the `backend/` directory:
+## Prediction API
 
-```powershell
-..\venv\Scripts\python.exe -m uvicorn app.main:app --reload
-```
+### `POST /api/predict`
 
-Run the frontend in a separate terminal using the commands above. The prediction form sends
-requests to `http://localhost:8000/api/predict`; the API documentation is at
-`http://localhost:8000/docs`.
+The endpoint accepts JSON with these fields:
 
-## Project structure
+| Field | Type | Accepted values or range |
+|---|---|---|
+| `age` | integer | 13–100 |
+| `gender` | string | `Male`, `Female` |
+| `country` | string | Non-empty |
+| `academicLevel` | string | `High School`, `Undergraduate`, `Graduate` |
+| `mostUsedPlatform` | string | `Facebook`, `Instagram`, `KakaoTalk`, `LINE`, `LinkedIn`, `Snapchat`, `TikTok`, `Twitter`, `VKontakte`, `WeChat`, `WhatsApp`, `YouTube` |
+| `purposeOfUse` | string | `Education`, `Entertainment`, `Networking`, `News` |
+| `avgDailyUsageHours` | number | 0–24 |
+| `dailyUnlocks` | integer | 0–1000 |
+| `studyHours` | number | 0–24 |
+| `physicalActivityHours` | number | 0–24 |
+| `sleepHoursPerNight` | number | 0–24 |
+| `stressLevel` | string | `Low`, `Medium`, `High`, `Very High` |
 
-```
-frontend/
-  src/                    React application, prediction service, and dashboard data
-  package.json
-backend/
-  app/
-    main.py
-    model.py
-    schemas.py
-  data/
-    Student Social Media And Mental Health Impact.csv
-  models/
-    Mental_Health_Model.pkl
-  notebooks/
-    Mental_Health_Score_model.ipynb
-  requirements.txt
-venv/                     Python environment (not committed)
-```
-
-## Connecting the real backend model
-
-Everything currently runs on a **client-side linear approximation** fitted offline on
-the training dataset (see the comments in `predictionService.js`) so the UI is fully demoable without
-waiting on the ML/backend team. Score ≈ intercept + weighted sum of the same numeric/ordinal
-features described in the project's Module 3 (sleep, stress, usage, study hours, activity, age,
-academic level). R² on the full dataset ≈ 0.71 — good enough for a realistic-feeling demo, **not**
-a substitute for the trained model.
-
-To switch to the real API once Module 4's backend is deployed:
-
-1. In `frontend/src/services/predictionService.js`, set `USE_MOCK = false`.
-2. Set `VITE_API_BASE_URL` in `frontend/.env` (copy `frontend/.env.example`) to point at the deployed
-   Flask/FastAPI service.
-3. Make sure the backend's `/api/predict` route accepts a POST body shaped like:
+Example request:
 
 ```json
 {
   "age": 21,
-  "gender": "Male",
+  "gender": "Female",
   "country": "India",
   "academicLevel": "Undergraduate",
   "mostUsedPlatform": "Instagram",
@@ -88,64 +140,48 @@ To switch to the real API once Module 4's backend is deployed:
 }
 ```
 
-   and responds with:
+The response contains the estimated score, up to three grouped factor contributions, and the
+prediction source:
 
 ```json
 {
   "score": 6.8,
   "contributions": [
     { "label": "Sleep", "value": 0.31 },
-    { "label": "Stress level", "value": -0.18 }
+    { "label": "Stress level", "value": -0.18 },
+    { "label": "Screen time", "value": -0.12 }
   ],
   "source": "backend-model"
 }
 ```
 
-`contributions` is optional (used to show "what moved this score most" — if the real model uses
-SHAP per Module 3, this is a natural place to plug those values in). The UI shows a fallback when
-the field is omitted.
+The request schema rejects unknown fields and validates the stated ranges and categorical values.
+The local development API permits browser requests from `localhost:5173` and `127.0.0.1:5173`;
+update the CORS configuration in `backend/app/main.py` before hosting the frontend on another
+origin.
 
-The saved scikit-learn pipeline expects these dataframe columns: `Study_Hours`, `Age`,
-`Avg_Daily_Usage_Hours`, `Daily_Unlocks`, `Physical_Activity_Hours`, `Sleep_Hours_Per_Night`,
-`Stress_Level`, `Gender`, `Academic_Level`, `Most_Used_Platform`, `Purpose_Of_Use`, and
-`Grouped_country`. The API can accept the camelCase fields shown above, but the backend must map
-them to those names and convert `country` to one of the top 10 training countries or `Other`
-before calling `predict`. The training CSV is available under `backend/data/` for this mapping.
+## Train the model
 
-## Dataset insights dashboard
+The training notebook is `backend/notebooks/Mental_Health_Score_model.ipynb`. Create the Python
+environment and install dependencies as described above, then open the notebook in Jupyter or
+VS Code and run its cells. The notebook reads the CSV in `backend/data/` and writes the trained
+pipeline to `backend/models/Mental_Health_Model.pkl`.
 
-`frontend/src/data/edaInsights.json` was generated once, offline, from the training CSV with pandas
-(group-by averages, Pearson correlations, and two 150-point samples for the scatter plots). If the
-dataset changes, regenerate this file — the dashboard components don't compute anything
-themselves, they just render whatever is in `edaInsights.json`.
+After changing the training data or notebook, regenerate the saved model before starting the API.
+The dashboard data in `frontend/src/data/edaInsights.json` is precomputed; update it separately
+if you change the source dataset and want the dashboard to reflect those changes.
 
-## Train the Python model
+## Limitations
 
-The notebook reads `backend/data/Student Social Media And Mental Health Impact.csv` and saves the
-trained model to `backend/models/Mental_Health_Model.pkl`. It supports running with the working
-directory set to the repository root, `backend/`, or `backend/notebooks/`.
+- Predictions reflect patterns in the available survey dataset and can inherit its limitations
+  or biases.
+- The returned score is an estimate, not a clinical measurement or diagnosis.
+- The dashboard statistics are precomputed and are not recalculated by the frontend.
+- The API loads the serialized model when the backend starts; the model file must be present and
+  compatible with the installed Python packages.
 
-In PowerShell, from the repository root, create and prepare the Python environment:
+## Contributing
 
-```powershell
-py -3.11 -m venv venv
-.\venv\Scripts\Activate.ps1
-python -m pip install -r backend\requirements.txt
-```
-
-If PowerShell blocks activation, run `..\venv\Scripts\python.exe -m pip install -r requirements.txt`
-from `backend/`, or `venv\Scripts\python.exe -m pip install -r backend\requirements.txt` from the
-repository root.
-
-In VS Code, open `backend/notebooks/Mental_Health_Score_model.ipynb`, select the repository `venv`
-Python 3.11 kernel, and choose **Run All**. The randomized search can take a few minutes. Re-run
-the notebook whenever the training data or model code changes.
-
-## Notes for the team
-
-- No backend calls happen yet by default (`USE_MOCK = true`), so the frontend can be developed and
-  demoed independently of Modules 1–3.
-- The form's dropdown options (countries, platforms, etc.) are pulled from the actual dataset's
-  unique values, so they'll always match what the model was trained on.
-- This is positioned as an **awareness / self-reflection tool**, not a diagnostic — see the
-  footer disclaimer and keep that framing in any copy changes.
+Contributions are welcome. For a change, create a branch, make the update, and open a pull request
+with a concise summary and any relevant test or build results. Please keep the product's awareness
+and self-reflection framing, and avoid presenting predictions as medical advice.
