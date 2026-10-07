@@ -4,11 +4,8 @@ An educational well-being dashboard that estimates a self-reflection score from 
 digital-habit inputs. MentaScore pairs a React frontend with a FastAPI prediction service and
 provides a concise breakdown of influential factors.
 
-<p align="center">
-  <a href="https://mentascore.vercel.app/"><strong>Frontend</strong></a>
-  &nbsp;·&nbsp;
-  <a href="https://mentascore-backend.onrender.com/"><strong>Backend</strong></a>
-</p>
+**Frontend:** [mentascore.vercel.app](https://mentascore.vercel.app/) ·
+**Backend:** [mentascore-backend.onrender.com](https://mentascore-backend.onrender.com/)
 
 | Layer | Technology |
 |---|---|
