@@ -1,105 +1,128 @@
 # MentaScore
 
-An educational well-being dashboard that estimates a self-reflection score from lifestyle and
-digital-habit inputs. MentaScore pairs a React frontend with a FastAPI prediction service and
-provides a concise breakdown of influential factors.
+AI-based mental health score prediction system. MentaScore estimates a well-being score (out of 10)
+from lifestyle, behavioural, academic and social factors, and explains which factors help or hold
+the score back. It pairs a React frontend with a FastAPI prediction service and a Random Forest
+model explained with SHAP.
 
-**Frontend:** [mentascore.vercel.app](https://mentascore.vercel.app/) 
+**Live demo:** [mentascore.vercel.app](https://mentascore.vercel.app/) |
+**API docs:** [mentascore-backend.onrender.com/docs](https://mentascore-backend.onrender.com/docs)
 
-**Backend:** [mentascore-backend.onrender.com](https://mentascore-backend.onrender.com/)
-
+> The backend runs on Render's free tier and sleeps when idle. The first request can take 30-60
+> seconds; later requests are fast.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18, Vite, Recharts |
-| API | Python 3.11, FastAPI, Uvicorn |
-| Prediction and explanations | scikit-learn, SHAP |
-| Hosting | Vercel (frontend), Render (API) |
-
+| Frontend | React 18, Vite, Recharts (Vercel) |
+| API | Python 3.11, FastAPI, Pydantic, Uvicorn (Render) |
+| Model and explanations | scikit-learn Random Forest pipeline, SHAP TreeExplainer |
+| Data and training | pandas, NumPy, Matplotlib, Seaborn, Jupyter |
 
 > **Well-being notice:** MentaScore is for awareness and self-reflection only. It is not a medical
 > device or mental-health screening tool, and it is not a substitute for professional care. Scores
 > and suggestions are estimates based on survey data and must not be used to diagnose or treat any
 > condition.
 
-## Architecture
+## How it works
 
 ```mermaid
 flowchart LR
     Person[User] -->|Enters lifestyle and digital-habit data| Web[React and Vite app<br/>Vercel]
     Web -->|POST /api/predict| API[FastAPI service<br/>Render]
     API -->|Validate request| Schema[Pydantic schema]
-    Schema --> Model[scikit-learn model pipeline]
+    Schema --> Model[scikit-learn pipeline<br/>preprocessing + Random Forest]
     Model --> Explain[SHAP factor contributions]
-    Explain -->|Score and top factors| API
+    Explain -->|Score and top 3 factors| API
     API -->|JSON response| Web
-    Web -->|Render score and suggestions| Person
+    Web -->|Score dial, factors, suggestions| Person
     Insights[Precomputed dashboard insights] --> Web
 ```
 
-The prediction API validates each request, runs the saved model pipeline, and returns an estimated
-score with up to three grouped SHAP contributions. Dashboard visualizations use precomputed project
-statistics bundled with the frontend.
+1. The React form collects 12 inputs and sends them to `/api/predict` through
+   `frontend/src/services/predictionService.js`, the only file that talks to the backend.
+2. The API validates the request with Pydantic (types, ranges, allowed categories, no unknown fields).
+3. The saved scikit-learn pipeline (preprocessing + Random Forest) predicts the score. The pipeline
+   is loaded once at startup, so training and serving use identical preprocessing.
+4. SHAP `TreeExplainer` computes each feature's contribution. One-hot columns are summed back into
+   five lifestyle factors (Sleep, Stress level, Screen time, Study hours, Physical activity) and the
+   three strongest are returned. Positive values help the score; negative values hold it back.
+5. The frontend shows the score dial, the factors and rule-based wellness suggestions.
 
-## Features
+## Machine learning
 
-- Enter demographic, digital-habit, and lifestyle information to request a prediction.
-- View an estimated score and a short explanation of its strongest contributing factors.
-- Explore dataset statistics through dashboard visualizations.
-- Train and save the model using the included Jupyter notebook.
+**Dataset:** the Kaggle survey dataset "Student Social Media And Mental Health Impact"
+(5,000 rows, 13 columns; 4,998 rows after removing 2 duplicates). Target: `Mental_Health_Score`.
+
+**Pipeline** (`backend/notebooks/Mental_Health_Score_model.ipynb`):
+
+| Step | Detail |
+|---|---|
+| Cleaning | Drop duplicates, clip negative physical-activity values, IQR outlier check |
+| Feature engineering | Keep the 9 most frequent countries, group the rest as `Other` |
+| Preprocessing | `ColumnTransformer`: log1p + scaling for skewed `Study_Hours`, scaling for other numeric columns, ordinal encoding for `Stress_Level`, one-hot encoding for categorical columns |
+| Split | 70% train / 30% test, `random_state=42` |
+| Models | Linear Regression baseline, Random Forest, Random Forest tuned with `RandomizedSearchCV` (5-fold) |
+
+**Results (test set):**
+
+| Model | R² | MAE | RMSE |
+|---|---|---|---|
+| Linear Regression | 0.740 | 0.536 | 0.676 |
+| Random Forest (default, **saved model**) | 0.878 | 0.347 | 0.464 |
+| Random Forest (tuned) | 0.865 | 0.369 | 0.487 |
+
+Random Forest captures non-linear relationships between habits and score. The tuned model has less
+over-fitting (train R² 0.955 vs 0.981) but a slightly lower test R², so the default Random Forest
+is the saved model. Strongest correlations with the score: daily usage -0.82, daily unlocks -0.79,
+sleep +0.77, study hours +0.75.
 
 ## Project structure
 
 ```text
 MentaScore/
 ├── backend/
-│   ├── app/                  # FastAPI routes, request schemas, model inference
-│   ├── data/                 # Training survey dataset
-│   ├── models/               # Serialized trained model
-│   ├── notebooks/            # Model training notebook
-│   └── requirements.txt      # Python dependencies
+│   ├── app/                  # FastAPI routes, request schemas, model inference + SHAP
+│   ├── data/                 # Training survey dataset (Kaggle)
+│   ├── models/               # Serialized trained pipeline (.pkl)
+│   ├── notebooks/            # EDA and model training notebook
+│   ├── tests/                # API tests (pytest)
+│   └── requirements.txt
 ├── frontend/
 │   ├── src/
-│   │   ├── components/       # Form, result, navigation, and dashboard UI
+│   │   ├── components/       # Form, result, navigation, dashboard UI
 │   │   ├── data/             # Precomputed dashboard insights
 │   │   ├── pages/            # Prediction and dashboard pages
 │   │   ├── services/         # Backend prediction requests
 │   │   └── utils/            # Wellness suggestions and score labels
-│   ├── .env.example          # Example frontend environment configuration
 │   └── package.json
 └── README.md
 ```
-
-## Requirements
-
-- Node.js and npm
-- Python 3.11
-- The model file at `backend/models/Mental_Health_Model.pkl`
-- The training dataset at `backend/data/Student Social Media And Mental Health Impact.csv`
 
 ## Run locally
 
 Start the backend and frontend in separate terminals.
 
-### 1. Set up and start the backend
+### 1. Backend
 
-From the repository root, create a virtual environment and install the Python dependencies:
+From the repository root:
 
 ```powershell
 py -3.11 -m venv venv
 .\venv\Scripts\python.exe -m pip install -r backend\requirements.txt
-```
-
-Start the API from the `backend` directory:
-
-```powershell
 Set-Location backend
 ..\venv\Scripts\python.exe -m uvicorn app.main:app --reload
 ```
 
-The backend service runs at `http://localhost:8000` when started locally.
+The API runs at `http://localhost:8000`. Interactive docs are at `http://localhost:8000/docs`.
 
-### 2. Set up and start the frontend
+Run the tests from `backend/`:
+
+```powershell
+..\venv\Scripts\python.exe -m pip install pytest httpx
+..\venv\Scripts\python.exe -m pytest tests
+```
+
+### 2. Frontend
 
 In a second terminal, from the repository root:
 
@@ -110,111 +133,112 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite (by default, `http://localhost:5173`). The example environment
-file points the frontend at `http://localhost:8000`. This is appropriate when running the backend
-locally. The checked-in `frontend/.env.production` points production builds at the deployed Render
-API; override `VITE_API_BASE_URL` in your hosting provider's build environment if you use a
-different backend URL.
+Open the local URL printed by Vite (default `http://localhost:5173`). `.env.example` points the
+frontend at `http://localhost:8000`; `frontend/.env.production` points production builds at the
+Render API.
 
-### Deploy the frontend
+### Deploy
 
-The frontend is a static Vite app. In your frontend hosting provider, configure:
-
-- **Root directory:** `frontend`
-- **Build command:** `npm ci && npm run build`
-- **Publish/output directory:** `dist`
-
-The production build uses `frontend/.env.production` and calls
-`https://mentascore-backend.onrender.com/api/predict`. `VITE_API_BASE_URL` is embedded into the
-frontend at build time, so set or change it before building/redeploying. To build and preview locally,
-run these commands from `frontend/`:
-
-```powershell
-npm ci
-npm run build
-npm run preview
-```
-
-The production files are generated in `frontend/dist/`.
-
-The prediction API is publicly accessible and does not use cookie-based authentication. Its CORS
-configuration allows cross-origin POST requests so the Vercel frontend can call the Render API.
+- **Frontend (Vercel):** root directory `frontend`, build command `npm ci && npm run build`,
+  output directory `dist`. `VITE_API_BASE_URL` is embedded at build time.
+- **Backend (Render):** Python 3.11 web service, root directory `backend`, start command
+  `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 
 ## Prediction API
 
-### `POST /api/predict`
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/predict` | Returns the estimated score and top 3 factor contributions |
+| `GET /health` | Health check (returns `{"status": "ok"}`) |
+| `GET /docs` | Interactive OpenAPI documentation |
 
-The endpoint accepts JSON with these fields:
+### `POST /api/predict`
 
 | Field | Type | Accepted values or range |
 |---|---|---|
-| `age` | integer | 13–100 |
+| `age` | integer | 13-100 |
 | `gender` | string | `Male`, `Female` |
-| `country` | string | Non-empty |
+| `country` | string | Non-empty. Countries outside the model's top 9 are treated as `Other` |
 | `academicLevel` | string | `High School`, `Undergraduate`, `Graduate` |
 | `mostUsedPlatform` | string | `Facebook`, `Instagram`, `KakaoTalk`, `LINE`, `LinkedIn`, `Snapchat`, `TikTok`, `Twitter`, `VKontakte`, `WeChat`, `WhatsApp`, `YouTube` |
 | `purposeOfUse` | string | `Education`, `Entertainment`, `Networking`, `News` |
-| `avgDailyUsageHours` | number | 0–24 |
-| `dailyUnlocks` | integer | 0–1000 |
-| `studyHours` | number | 0–24 |
-| `physicalActivityHours` | number | 0–24 |
-| `sleepHoursPerNight` | number | 0–24 |
+| `avgDailyUsageHours` | number | 0-24 |
+| `dailyUnlocks` | integer | 0-1000 |
+| `studyHours` | number | 0-24 |
+| `physicalActivityHours` | number | 0-24 |
+| `sleepHoursPerNight` | number | 0-24 |
 | `stressLevel` | string | `Low`, `Medium`, `High`, `Very High` |
 
 Example request:
 
 ```json
 {
-  "age": 21,
+  "age": 20,
   "gender": "Female",
   "country": "India",
   "academicLevel": "Undergraduate",
   "mostUsedPlatform": "Instagram",
   "purposeOfUse": "Entertainment",
-  "avgDailyUsageHours": 4.5,
-  "dailyUnlocks": 150,
+  "avgDailyUsageHours": 5,
+  "dailyUnlocks": 106,
   "studyHours": 3,
-  "physicalActivityHours": 1.5,
-  "sleepHoursPerNight": 7,
-  "stressLevel": "Medium"
+  "physicalActivityHours": 1,
+  "sleepHoursPerNight": 6,
+  "stressLevel": "High"
 }
 ```
 
-The response contains the estimated score, up to three grouped factor contributions, and the
-prediction source:
+Example response:
 
 ```json
 {
-  "score": 6.8,
+  "score": 5.7,
   "contributions": [
-    { "label": "Sleep", "value": 0.31 },
-    { "label": "Stress level", "value": -0.18 },
-    { "label": "Screen time", "value": -0.12 }
+    { "label": "Sleep", "value": -0.315 },
+    { "label": "Screen time", "value": -0.174 },
+    { "label": "Physical activity", "value": -0.095 }
   ],
   "source": "backend-model"
 }
 ```
 
-The request schema rejects unknown fields and validates the stated ranges and categorical values.
-The backend currently allows cross-origin requests from browser frontends. If you later restrict
-CORS to specific domains, include your deployed frontend origin and any local development origins.
+`value` is the SHAP contribution in score points relative to the average prediction: negative
+values hold the score back, positive values help it. Requests with unknown fields, out-of-range
+numbers or unknown categories are rejected with HTTP 422. The API stores no user data.
 
-## Train the model
+## Retrain the model
 
-The training notebook is `backend/notebooks/Mental_Health_Score_model.ipynb`. Create the Python
-environment and install dependencies as described above, then open the notebook in Jupyter or
-VS Code and run its cells. The notebook reads the CSV in `backend/data/` and writes the trained
-pipeline to `backend/models/Mental_Health_Model.pkl`.
-
-After changing the training data or notebook, regenerate the saved model before starting the API.
-The dashboard data in `frontend/src/data/edaInsights.json` is precomputed; update it separately
-if you change the source dataset and want the dashboard to reflect those changes.
+Open `backend/notebooks/Mental_Health_Score_model.ipynb` in Jupyter or VS Code and run all cells.
+It reads the CSV in `backend/data/` and writes the pipeline to
+`backend/models/Mental_Health_Model.pkl`. The pickle depends on the scikit-learn version, so keep
+`requirements.txt` (scikit-learn 1.6.1) in sync with the version used for training. The dashboard
+data in `frontend/src/data/edaInsights.json` is precomputed; regenerate it if the dataset changes.
 
 ## Limitations
 
-- Predictions reflect patterns in the available survey dataset and can inherit its limitations
-  or biases.
-- The returned score is an estimate, not a clinical measurement or diagnosis.
+- Predictions reflect patterns in one survey dataset and can inherit its limitations or biases; the
+  score has not been validated by clinicians.
+- Train R² (0.98) is much higher than test R² (0.88), so the model over-fits somewhat.
+- Explanations cover five lifestyle factors; age, daily unlocks and categorical features are not
+  shown individually.
 - The dashboard statistics are precomputed and are not recalculated by the frontend.
-- The API loads the serialized model when the backend starts; the model file must be present and
-  compatible with the installed Python packages.
+- The free Render tier has cold starts after inactivity.
+
+## Future work
+
+Global SHAP plots for all features, larger and more diverse data with expert validation, score
+tracking over time, a mobile version and more languages.
+
+## Team
+
+Shristy Singh, Sonam Chaudhary, Ume Kulsoom, Utsav Srivastava - B.Tech CSE (AIML), GL Bajaj
+Institute of Technology and Management, under the supervision of Vikash Singhaniya, Assistant
+Professor, Department of CSE (AIML).
+
+## References
+
+1. Hirshkowitz et al. (2015). National Sleep Foundation's sleep time duration recommendations. *Sleep Health*, 1(1).
+2. Hunt et al. (2018). No more FOMO: limiting social media decreases loneliness and depression. *J. Social and Clinical Psychology*, 37(10).
+3. Twenge et al. (2018). Increases in depressive symptoms ... and links to increased new media screen time. *Clinical Psychological Science*, 6(1).
+4. Shatte, Hutchinson & Teague (2019). Machine learning in mental health: a scoping review. *Psychological Medicine*, 49(9).
+5. Lundberg & Lee (2017). A unified approach to interpreting model predictions. *NeurIPS*, 30.
