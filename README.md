@@ -5,7 +5,8 @@ from lifestyle, behavioural, academic and social factors, and explains which fac
 the score back. It pairs a React frontend with a FastAPI prediction service and a Random Forest
 model explained with SHAP.
 
-**Live demo:** [mentascore.vercel.app](https://mentascore.vercel.app/) |
+**Live demo:** [mentascore.vercel.app](https://mentascore.vercel.app/) 
+
 **API docs:** [mentascore-backend.onrender.com/docs](https://mentascore-backend.onrender.com/docs)
 
 > The backend runs on Render's free tier and sleeps when idle. The first request can take 30-60
@@ -228,17 +229,3 @@ data in `frontend/src/data/edaInsights.json` is precomputed; regenerate it if th
 
 Global SHAP plots for all features, larger and more diverse data with expert validation, score
 tracking over time, a mobile version and more languages.
-
-## Team
-
-Shristy Singh, Sonam Chaudhary, Ume Kulsoom, Utsav Srivastava - B.Tech CSE (AIML), GL Bajaj
-Institute of Technology and Management, under the supervision of Vikash Singhaniya, Assistant
-Professor, Department of CSE (AIML).
-
-## References
-
-1. Hirshkowitz et al. (2015). National Sleep Foundation's sleep time duration recommendations. *Sleep Health*, 1(1).
-2. Hunt et al. (2018). No more FOMO: limiting social media decreases loneliness and depression. *J. Social and Clinical Psychology*, 37(10).
-3. Twenge et al. (2018). Increases in depressive symptoms ... and links to increased new media screen time. *Clinical Psychological Science*, 6(1).
-4. Shatte, Hutchinson & Teague (2019). Machine learning in mental health: a scoping review. *Psychological Medicine*, 49(9).
-5. Lundberg & Lee (2017). A unified approach to interpreting model predictions. *NeurIPS*, 30.
