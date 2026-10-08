@@ -103,7 +103,7 @@ MentaScore/
 
 Start the backend and frontend in separate terminals.
 
-### 1. Backend
+### Backend
 
 From the repository root:
 
@@ -123,7 +123,7 @@ Run the tests from `backend/`:
 ..\venv\Scripts\python.exe -m pytest tests
 ```
 
-### 2. Frontend
+### Frontend
 
 In a second terminal, from the repository root:
 
